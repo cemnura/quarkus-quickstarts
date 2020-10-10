@@ -10,9 +10,6 @@ import org.junit.jupiter.api.Test;
 @QuarkusTestResource(KeycloakServer.class)
 public class AdminResourceTest {
 
-    private static final String KEYCLOAK_SERVER_URL = "http://localhost:8180";
-    private static final String KEYCLOAK_REALM = "quarkus";
-
     @ConfigProperty(name = "quarkus.oidc.auth-server-url")
     String oidc;
 
@@ -22,19 +19,24 @@ public class AdminResourceTest {
                 .when().get("/api/admin")
                 .then()
                 .statusCode(200);
+
+        RestAssured.given().auth().oauth2(getAccessToken("alice"))
+                .when().get("/api/admin")
+                .then()
+                .statusCode(403);
     }
 
     private String getAccessToken(String userName) {
         return RestAssured
                 .given()
-                .param("grant_type", "client_credentials")
+                .param("grant_type", "password")
                 .param("username", userName)
                 .param("password", userName)
                 .param("client_id", "backend-service")
                 .param("client_secret", "secret")
                 .when()
                 .post(oidc + "/protocol/openid-connect/token")
-                .getBody().print();
+                .jsonPath().get("access_token");
     }
 
 }

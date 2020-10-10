@@ -3,6 +3,7 @@ package org.acme.security.openid.connect;
 import io.quarkus.test.common.QuarkusTestResource;
 import io.quarkus.test.junit.QuarkusTest;
 import io.restassured.RestAssured;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
@@ -10,13 +11,19 @@ import org.junit.jupiter.api.Test;
 @QuarkusTestResource(KeycloakServer.class)
 public class UsersResourceTest {
 
-    private static final String KEYCLOAK_SERVER_URL = "http://localhost:8180";
-    private static final String KEYCLOAK_REALM = "quarkus";
+    @ConfigProperty(name = "quarkus.oidc.auth-server-url")
+    String oidc;
 
     @Test
     public void testUserAccess() {
-        RestAssured.given().auth().oauth2(getAccessToken("jdoe"))
-                .when().get("/api/users")
+
+        RestAssured.given().auth().oauth2(getAccessToken("alice"))
+                .when().get("/api/users/me")
+                .then()
+                .statusCode(200);
+
+        RestAssured.given().auth().oauth2(getAccessToken("admin"))
+                .when().get("/api/users/me")
                 .then()
                 .statusCode(200);
     }
@@ -40,13 +47,13 @@ public class UsersResourceTest {
     private String getAccessToken(String userName) {
         return RestAssured
                 .given()
-                .param("grant_type", "client_credentials")
+                .param("grant_type", "password")
                 .param("username", userName)
                 .param("password", userName)
                 .param("client_id", "backend-service")
                 .param("client_secret", "secret")
                 .when()
-                .post(KEYCLOAK_SERVER_URL + "/realms/" + KEYCLOAK_REALM + "/protocol/openid-connect/token")
+                .post(oidc + "/protocol/openid-connect/token")
                 .jsonPath().get("access_token");
     }
 
