@@ -2,7 +2,6 @@ package org.acme.security.openid.connect;
 
 import io.quarkus.test.common.QuarkusTestResourceLifecycleManager;
 import org.testcontainers.containers.BindMode;
-import org.testcontainers.containers.FixedHostPortGenericContainer;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.wait.strategy.Wait;
 
@@ -22,16 +21,12 @@ public class KeycloakServer implements QuarkusTestResourceLifecycleManager {
                 .withClasspathResourceMapping("quarkus-realm.json", "/tmp/realm.json", BindMode.READ_ONLY)
                 .waitingFor(Wait.forHttp("/auth"));
         keycloak.start();
-        System.setProperty("quarkus.oauth2.introspection-url", "http://localhost:" + keycloak.getFirstMappedPort() + "/auth/realms/quarkus/protocol/openid-connect/token/introspect");
-        System.setProperty("keycloak.url", "http://localhost:" + keycloak.getFirstMappedPort() + "/auth");
 
-        return Collections.emptyMap();
+        return Collections.singletonMap("quarkus.oidc.auth-server-url", "http://localhost:" + keycloak.getFirstMappedPort() + "/auth/realms/quarkus");
     }
 
     @Override
     public void stop() {
-        System.clearProperty("quarkus.oauth2.introspection-url");
-        System.clearProperty("keycloak.url");
         keycloak.stop();
     }
 }
